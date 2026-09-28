@@ -27,25 +27,35 @@ file(GLOB FFGL_LIB_SOURCES
 
 # ---------------------------------------------------------------------------
 # libomt imported shared library
+#
+# The OMT plugins are not tracked in this repository (see .gitignore); they are
+# built only when their sources happen to be present in the working tree.
 # ---------------------------------------------------------------------------
-add_library(libomt SHARED IMPORTED)
+set(OMT_SOURCES_PRESENT FALSE)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/source/plugins/OMTSend/OMTSend.cpp")
+    set(OMT_SOURCES_PRESENT TRUE)
+endif()
 
-if(WIN32)
-    set_target_properties(libomt PROPERTIES
-        IMPORTED_LOCATION             "${LIBOMT_ROOT}/bin/libomt.dll"
-        IMPORTED_IMPLIB               "${LIBOMT_ROOT}/lib/libomt.lib"
-        INTERFACE_INCLUDE_DIRECTORIES "${LIBOMT_ROOT}/include"
-    )
-elseif(APPLE)
-    set_target_properties(libomt PROPERTIES
-        IMPORTED_LOCATION             "${LIBOMT_ROOT}/bin/libomt.dylib"
-        INTERFACE_INCLUDE_DIRECTORIES "${LIBOMT_ROOT}/include"
-    )
-else()
-    set_target_properties(libomt PROPERTIES
-        IMPORTED_LOCATION             "${LIBOMT_ROOT}/bin/libomt.so"
-        INTERFACE_INCLUDE_DIRECTORIES "${LIBOMT_ROOT}/include"
-    )
+if(OMT_SOURCES_PRESENT)
+    add_library(libomt SHARED IMPORTED)
+
+    if(WIN32)
+        set_target_properties(libomt PROPERTIES
+            IMPORTED_LOCATION             "${LIBOMT_ROOT}/bin/libomt.dll"
+            IMPORTED_IMPLIB               "${LIBOMT_ROOT}/lib/libomt.lib"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBOMT_ROOT}/include"
+        )
+    elseif(APPLE)
+        set_target_properties(libomt PROPERTIES
+            IMPORTED_LOCATION             "${LIBOMT_ROOT}/bin/libomt.dylib"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBOMT_ROOT}/include"
+        )
+    else()
+        set_target_properties(libomt PROPERTIES
+            IMPORTED_LOCATION             "${LIBOMT_ROOT}/bin/libomt.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${LIBOMT_ROOT}/include"
+        )
+    endif()
 endif()
 
 # ---------------------------------------------------------------------------
@@ -129,21 +139,23 @@ macro(ffgl_plugin TARGET_NAME)
 endmacro()
 
 # ---------------------------------------------------------------------------
-# Plugins
+# OMT plugins - only when their sources are present locally
 # ---------------------------------------------------------------------------
-ffgl_plugin(OMTSend
-    SOURCES
-        source/plugins/OMTSend/OMTSend.cpp
-        source/plugins/OMTSend/OMTSend.h
-    OUTPUT OMTSend
-)
+if(OMT_SOURCES_PRESENT)
+    ffgl_plugin(OMTSend
+        SOURCES
+            source/plugins/OMTSend/OMTSend.cpp
+            source/plugins/OMTSend/OMTSend.h
+        OUTPUT OMTSend
+    )
 
-ffgl_plugin(OMTReceive
-    SOURCES
-        source/plugins/OMTReceive/OMTReceive.cpp
-        source/plugins/OMTReceive/OMTReceive.h
-    OUTPUT OMTReceive
-)
+    ffgl_plugin(OMTReceive
+        SOURCES
+            source/plugins/OMTReceive/OMTReceive.cpp
+            source/plugins/OMTReceive/OMTReceive.h
+        OUTPUT OMTReceive
+    )
+endif()
 
 ffgl_plugin(MinTest
     SOURCES

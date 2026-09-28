@@ -30,6 +30,12 @@ cmake_install.cmake
 # libomt: place bin/ include/ lib/ from the libomt release
 /src/deps/libomt/
 
+# OMT plugins - kept locally, not part of this repository yet
+/src/source/plugins/OMTSend/
+/src/source/plugins/OMTReceive/
+/src/source/shared/OMTVideoBuffer.h
+/OMTHolding.jpg
+
 # IDE / editor
 .vs/
 .vscode/

@@ -3,22 +3,19 @@
 FFGL plugins for [Resolume Arena](https://resolume.com/arena) built on the
 [FFGL SDK](https://github.com/resolume/ffgl).
 
-The headline plugin is **Chrome Browser** — it embeds a Chromium (WebView2)
-browser inside Arena, so any web page can be used as a video source and routed
-into the mix, the output, or a layer mask. The repository also contains a pair
-of Open Media Transport plugins for sending video out to other machines over the
-network, plus a minimal plugin used to verify that the SDK/toolchain works.
+The plugin is **Chrome Browser** — it embeds a Chromium (WebView2) browser
+inside Arena, so any web page can be used as a video source and routed into the
+mix, the output, or a layer mask. A minimal test plugin is included to verify
+that the SDK and toolchain work.
 
 ## Plugins
 
 | Plugin | DLL | Type | ID | Description |
 |---|---|---|---|---|
 | Chrome Browser | `ChromeBrowser.dll` | Source | `CHRM` | Embedded WebView2 browser, captured and rendered as an OpenGL texture |
-| OMT Send | `OMTSend.dll` | Effect | `OMTS` | Sends the incoming layer over the network via Open Media Transport |
-| OMT Receive | `OMTReceive.dll` | Source | `OMRV` | Discovers OMT senders on the network and renders their video |
 | Min Test | `MinTest.dll` | Effect | `MTST` | Outputs solid red — build/SDK smoke test |
 
-### Chrome Browser
+## Chrome Browser
 
 Parameters:
 
@@ -47,24 +44,6 @@ at the browser's capture rate rather than being a true per-frame video feed.
 Cascading this plugin through a layer tree means high capture rates, high
 browser resolution, or many instances will cost GPU and CPU.
 
-### OMT Send / OMT Receive
-
-`OMTSend` takes a layer, does a pass-through render, and asynchronously reads
-the texture back with a double-buffered PBO pair so the GPU is never stalled.
-Frames are flipped from OpenGL's bottom-to-top order, cropped to the real video
-dimensions (skipping power-of-two padding), and handed to a send thread over a
-double buffer. Parameters: **Source Name**, **Quality** (low/medium/high),
-**Frame Rate** (24/25/29.97/30/50/60), **Enable Logging**.
-
-`OMTReceive` polls for senders in a background thread, publishes them as a
-dropdown, and auto-connects when exactly one sender is found. Frames are
-received on their own thread and swapped into a shared buffer under a short
-lock, then uploaded on the GL thread. Until the first frame arrives it renders
-a holding image. Parameters: **Source**, **Logging**.
-
-See [openmediatransport.org](https://openmediatransport.org) for the transport
-and the `libomt` SDK.
-
 ## Requirements
 
 - Windows 10/11 x64
@@ -72,9 +51,7 @@ and the `libomt` SDK.
 - Visual Studio 2019/2022 with the C++ desktop workload
 - CMake 3.15 or newer
 - [WebView2 Evergreen Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)
-  — only for Chrome Browser
 - A clone of the FFGL SDK (`resolume/ffgl`)
-- `libomt` binaries (`bin/`, `include/`, `lib/`) — only for the OMT plugins
 
 ## Building
 
@@ -85,43 +62,31 @@ cd ffglchrome
 # FFGL SDK sources (required — not vendored here)
 git clone https://github.com/resolume/ffgl.git third_party/ffgl
 
-# WebView2 SDK for ChromeBrowser (headers + loader only)
+# WebView2 SDK (headers + loader only)
 powershell -ExecutionPolicy Bypass -File src/deps/webview2/download_sdk.ps1
 
 cmake -S src -B src/build -DFFGL_ROOT="$PWD/third_party/ffgl"
 cmake --build src/build --config Release
 ```
 
-The OMT plugins need the `libomt` release unpacked into
-`src/deps/libomt/{bin,include,lib}`, or point `LIBOMT_ROOT` somewhere else:
-
-```sh
-cmake -S src -B src/build -DFFGL_ROOT=... -DLIBOMT_ROOT=/path/to/libomt
-```
-
 If the WebView2 SDK is missing, CMake warns and skips `ChromeBrowser.dll`;
-the other three targets still build. `WEBVIEW2_ROOT` overrides SDK discovery
-(and otherwise falls back to `find_package`, i.e. `vcpkg install webview2`).
+`MinTest.dll` still builds. `WEBVIEW2_ROOT` overrides SDK discovery (and
+otherwise falls back to `find_package`, i.e. `vcpkg install webview2`).
 
-Built DLLs land in `src/build/Release/`, with the runtime dependencies
-(`libomt.dll`, `libvmx.dll`, `WebView2Loader.dll`) copied next to them. Copy the
-plugins you want into your Arena `Plugins/ffgl` folder — typically
-`%USERPROFILE%\Documents\Resolume Arena\Plugins\ffgl` — and they appear in
-Arena on the next start.
+Built DLLs land in `src/build/Release/`, with `WebView2Loader.dll` copied next
+to them. Copy the plugins you want into your Arena `Plugins/ffgl` folder —
+typically `%USERPROFILE%\Documents\Resolume Arena\Plugins\ffgl` — and they
+appear in Arena on the next start.
 
 ## Repository layout
 
 ```
 src/
-  CMakeLists.txt                    build definitions for all four plugins
+  CMakeLists.txt                    build definitions
   deps/
-    libomt/                         libomt SDK (bin/include/lib) — not committed
     webview2/                       download_sdk.ps1 / .bat fetch the SDK
   source/
-    shared/OMTVideoBuffer.h         lock-light double buffer (GL thread -> send thread)
     plugins/ChromeBrowser/          the browser source plugin
-    plugins/OMTSend/                network video sender
-    plugins/OMTReceive/             network video receiver
     plugins/MinTest/                minimal SDK smoke test
 ```
 
